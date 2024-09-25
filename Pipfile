@@ -12,6 +12,7 @@ wandb = "*"
 matplotlib = "*"
 torcheval = "*"
 seaborn = "*"
+scikit-image = "*"
 
 [dev-packages]
 

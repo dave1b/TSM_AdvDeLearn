@@ -23,7 +23,7 @@ from torcheval.metrics import MulticlassAccuracy
 
 import numpy as np
 
-img_size = 256
+img_size = 300
 num_classes = 37
 
 
@@ -32,8 +32,8 @@ def get_data_set(batch_size):
     # CenterCrop is one possibility, but you can also try to resize the image
     #
     transform = torchvision.transforms.Compose(
-        [torchvision.transforms.ToTensor(),
-         torchvision.transforms.CenterCrop(256)])
+        [torchvision.transforms.ToTensor(), torchvision.transforms.RandomHorizontalFlip(p=0.5),
+         torchvision.transforms.RandomRotation(degrees=15), torchvision.transforms.CenterCrop(img_size)])
     data_train = torchvision.datasets.OxfordIIITPet(root='data/OxfordIIITPet', download=True, transform=transform)
     data_test = torchvision.datasets.OxfordIIITPet(root='data/OxfordIIITPet', split='test', download=True, transform=transform)
 
@@ -55,15 +55,19 @@ class DeepCNN(nn.Module):
     def __init__(self):
         super(DeepCNN, self).__init__()
         self.layers = nn.Sequential(
-            nn.Conv2d(3, 8, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Conv2d(8, 16, kernel_size=3, stride=2, padding=1),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.BatchNorm2d(16),
-            nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Flatten(),
-            nn.Linear(32768, 128),
+            nn.Linear(87616, 128),
+            nn.Dropout(0.25),
+            nn.Linear(128, num_classes),
             nn.Softmax(dim=1),
         )
 
@@ -85,7 +89,8 @@ class Metrics:
 
     def to_csv(self):
         timestamp = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
-        return [self.train_accs[-1], self.train_losses[-1], self.val_accs[-1], self.val_losses[-1], self.n_epochs, self.n_parameters,
+        return [self.train_accs[-1], self.train_losses[-1], self.val_accs[-1], self.val_losses[-1], self.n_epochs,
+                f"{self.n_parameters:,}".replace(",", "'"),
                 self.batch_size, self.lr, timestamp]
 
 
@@ -120,16 +125,16 @@ def train(model, train_loader, val_loader, criterion, optimizer, num_epochs, dev
             if (step + 1) % 10 == 0:
                 print(f'Epoch [{epoch + 1}/{num_epochs}], '
                       f'Step [{step + 1}/{total_step}], '
-                      f'Loss: {loss.item():.4f}, '
+                      f'Loss: {loss:.4f}, '
                       f'Accuracy: {train_acc:.3f}')
-            train_metrics = {'train/train_loss:': loss.item(),
+            train_metrics = {'train/train_loss:': loss,
                              'train/train_acc': train_acc,
                              'train/epoch': epoch}
             step_count += 1
             wandb.log(train_metrics, step=step_count)
         model.eval()
-        train_accs.append(train_acc.item())
-        train_losses.append(loss.item())
+        train_accs.append(train_acc)
+        train_losses.append(loss)
 
         with torch.no_grad():
             val_loss = []
@@ -141,12 +146,12 @@ def train(model, train_loader, val_loader, criterion, optimizer, num_epochs, dev
                 loss = criterion(outputs, labels)
                 _, predicted = torch.max(outputs.data, 1)
                 metrics.update(predicted, labels)
-                val_loss.append(loss.item())
+                val_loss.append(loss.cpu())
             val_acc = metrics.compute()
             val_loss_mean = np.mean(val_loss)
 
             print(f'Val Accuracy: {val_acc:.3f}, loss: {val_loss_mean:.4f}')
-            val_accs.append(val_acc.item())
+            val_accs.append(val_acc)
             val_losses.append(val_loss_mean)
         val_metrics = {'val/val_loss': val_loss_mean,
                        'val/val_acc': val_acc}
@@ -154,6 +159,11 @@ def train(model, train_loader, val_loader, criterion, optimizer, num_epochs, dev
         wandb.log(val_metrics, step=step_count)
 
     wandb.finish()
+
+    # move to cpu
+    train_accs = [acc.cpu().numpy() for acc in train_accs]
+    val_accs = [acc.cpu().numpy() for acc in val_accs]
+
     return model, (train_accs, train_losses, val_accs, val_losses)
 
 
@@ -189,26 +199,6 @@ def evaluate_final_model(model, test_loader, device):
         print(f'Final test Accuracy: {test_acc:.2f}')
 
 
-def main():
-    wandb.login()
-
-    batch_size = 64
-    train_loader, val_loader, test_loader = get_data_set(batch_size)
-    device = get_device()
-    cnn = DeepCNN()
-    n_parameters = sum(p.numel() for p in cnn.parameters())
-    n_epochs = 1
-    lr = 0.001
-    optimizer = optim.Adam(cnn.parameters(), lr=lr)
-    loss_fn = nn.CrossEntropyLoss()
-
-    final_model, results = train(cnn, train_loader, val_loader, loss_fn, optimizer, n_epochs, device)
-    metrics = Metrics(*results, n_epochs, n_parameters, batch_size, lr, optimizer.__class__.__name__)
-    index = write_results_to_csv(metrics, 'data/train_stats.csv')
-    save_train_curves_plots(metrics, f'data/train_curves_{index}.png')
-    # evaluate_final_model(final_model, test_loader, device)
-
-
 def write_results_to_csv(metric: Metrics, filename):
     with open(filename, 'r') as file:
         index = int(file.readlines()[-1].split(',')[0]) + 1
@@ -233,6 +223,26 @@ def save_train_curves_plots(results: Metrics, filename):
     ax2.legend()
     ax2.grid()
     plt.savefig(filename)
+
+
+def main():
+    wandb.login()
+
+    batch_size = 64
+    train_loader, val_loader, test_loader = get_data_set(batch_size)
+    device = get_device()
+    cnn = DeepCNN()
+    n_parameters = sum(p.numel() for p in cnn.parameters())
+    n_epochs = 10
+    lr = 0.001
+    optimizer = optim.Adam(cnn.parameters(), lr=lr)
+    loss_fn = nn.CrossEntropyLoss()
+
+    final_model, results = train(cnn, train_loader, val_loader, loss_fn, optimizer, n_epochs, device)
+    metrics = Metrics(*results, n_epochs, n_parameters, batch_size, lr, optimizer.__class__.__name__)
+    index = write_results_to_csv(metrics, 'data/train_stats.csv')
+    save_train_curves_plots(metrics, f'data/train_curves_{index}.png')
+    # evaluate_final_model(final_model, test_loader, device)
 
 
 if __name__ == '__main__':
