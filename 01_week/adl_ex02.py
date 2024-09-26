@@ -33,7 +33,7 @@ def get_data_set(batch_size):
     #
     transform = torchvision.transforms.Compose(
         [torchvision.transforms.ToTensor(), torchvision.transforms.RandomHorizontalFlip(p=0.5),
-         torchvision.transforms.RandomRotation(degrees=15), torchvision.transforms.CenterCrop(img_size)])
+         torchvision.transforms.RandomRotation(degrees=25), torchvision.transforms.CenterCrop(img_size)])
     data_train = torchvision.datasets.OxfordIIITPet(root='data/OxfordIIITPet', download=True, transform=transform)
     data_test = torchvision.datasets.OxfordIIITPet(root='data/OxfordIIITPet', split='test', download=True, transform=transform)
 
@@ -56,19 +56,37 @@ class DeepCNN(nn.Module):
         super(DeepCNN, self).__init__()
         self.layers = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
+
             nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.BatchNorm2d(64),
+
+            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+
+            nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+
             nn.Flatten(),
-            nn.Linear(87616, 128),
-            nn.Dropout(0.25),
-            nn.Linear(128, num_classes),
-            nn.Softmax(dim=1),
+            nn.Linear(256*1*1, 128),
+            nn.ReLU(),
+
+            nn.Dropout(0.3),
+            nn.Linear(128, num_classes)
         )
 
     def forward(self, x):
@@ -134,7 +152,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, num_epochs, dev
             wandb.log(train_metrics, step=step_count)
         model.eval()
         train_accs.append(train_acc)
-        train_losses.append(loss)
+        train_losses.append(loss.item())
 
         with torch.no_grad():
             val_loss = []
@@ -146,7 +164,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, num_epochs, dev
                 loss = criterion(outputs, labels)
                 _, predicted = torch.max(outputs.data, 1)
                 metrics.update(predicted, labels)
-                val_loss.append(loss.cpu())
+                val_loss.append(loss.item())
             val_acc = metrics.compute()
             val_loss_mean = np.mean(val_loss)
 
@@ -162,6 +180,7 @@ def train(model, train_loader, val_loader, criterion, optimizer, num_epochs, dev
 
     # move to cpu
     train_accs = [acc.cpu().numpy() for acc in train_accs]
+    # train_losses = [loss.cpu() for loss in train_losses]
     val_accs = [acc.cpu().numpy() for acc in val_accs]
 
     return model, (train_accs, train_losses, val_accs, val_losses)
@@ -226,22 +245,24 @@ def save_train_curves_plots(results: Metrics, filename):
 
 
 def main():
-    wandb.login()
+    # wandb.login()
 
     batch_size = 64
     train_loader, val_loader, test_loader = get_data_set(batch_size)
     device = get_device()
     cnn = DeepCNN()
     n_parameters = sum(p.numel() for p in cnn.parameters())
-    n_epochs = 10
+    print(f"Number of parameters: {n_parameters}")
+    n_epochs = 20
     lr = 0.001
-    optimizer = optim.Adam(cnn.parameters(), lr=lr)
+    weight_decay = 0.0001
+    optimizer = optim.Adam(cnn.parameters(), lr=lr, weight_decay=weight_decay)
     loss_fn = nn.CrossEntropyLoss()
 
     final_model, results = train(cnn, train_loader, val_loader, loss_fn, optimizer, n_epochs, device)
     metrics = Metrics(*results, n_epochs, n_parameters, batch_size, lr, optimizer.__class__.__name__)
     index = write_results_to_csv(metrics, 'data/train_stats.csv')
-    save_train_curves_plots(metrics, f'data/train_curves_{index}.png')
+    save_train_curves_plots(metrics, f'data/train_curves/train_curves_{index}.png')
     # evaluate_final_model(final_model, test_loader, device)
 
 

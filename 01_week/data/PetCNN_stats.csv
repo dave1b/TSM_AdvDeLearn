@@ -1,1 +1,0 @@
-train_accuracy,train_loss, val_accuracy,val_loss,n_parameters, batch_size, n_epochs,  learning_rate,optimizer,
