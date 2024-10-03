@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-torch = "*"
+torch = "2.3.0"
 numpy = "*"
 torchvision = "*"
 torchinfo = "*"
@@ -13,6 +13,8 @@ matplotlib = "*"
 torcheval = "*"
 seaborn = "*"
 scikit-image = "*"
+torchtext = "*"
+datasets = "*"
 
 [dev-packages]
 

@@ -14,6 +14,8 @@ import torch.optim as optim
 import torchvision
 import csv
 import matplotlib.pyplot as plt
+from torchvision import transforms
+
 import wandb
 from mpl_toolkits.mplot3d.proj3d import transform
 from scipy.stats import triang
@@ -23,7 +25,7 @@ from torcheval.metrics import MulticlassAccuracy
 
 import numpy as np
 
-img_size = 300
+img_size = 500
 num_classes = 37
 
 
@@ -32,8 +34,10 @@ def get_data_set(batch_size):
     # CenterCrop is one possibility, but you can also try to resize the image
     #
     transform = torchvision.transforms.Compose(
-        [torchvision.transforms.ToTensor(), torchvision.transforms.RandomHorizontalFlip(p=0.5),
-         torchvision.transforms.RandomRotation(degrees=25), torchvision.transforms.CenterCrop(img_size)])
+        [transforms.ToTensor(), transforms.RandomHorizontalFlip(p=0.5),
+         transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
+         transforms.RandomGrayscale(p=0.05), torchvision.transforms.RandomRotation(degrees=20),
+         torchvision.transforms.CenterCrop(img_size)])
     data_train = torchvision.datasets.OxfordIIITPet(root='data/OxfordIIITPet', download=True, transform=transform)
     data_test = torchvision.datasets.OxfordIIITPet(root='data/OxfordIIITPet', split='test', download=True, transform=transform)
 
@@ -82,7 +86,7 @@ class DeepCNN(nn.Module):
             nn.MaxPool2d(kernel_size=2, stride=2),
 
             nn.Flatten(),
-            nn.Linear(256*1*1, 128),
+            nn.Linear(256 * 2 * 2, 128),
             nn.ReLU(),
 
             nn.Dropout(0.3),
