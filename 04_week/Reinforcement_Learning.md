@@ -79,9 +79,15 @@ Policy iteration alternates between two main steps:
 ### Temporal Difference Learning
 TD learning allows an agent to update value estimates not only based on the reward at the end of an episode (like in Monte Carlo methods) but after every step, using the reward observed and the estimate of the next state’s value.
 
+### SARSA
+SARSA (State-Action-Reward-State-Action) is used to learn an optimal policy for a Markov Decision Process (MDP) through direct interaction with the environment.
+
+SARSA works by updating the action-value function \( Q(s, a) \) using the following update rule:
+$Q(s, a) \leftarrow Q(s, a) + \alpha \left[ r + \gamma Q(s', a') - Q(s, a) \right]$
 
 
-
+### Q-Learning
+Q-learning is an off-policy TD control algorithm that learns the optimal action-value function $Q^*(s, a)$ by directly approximating it.
 
 
 
