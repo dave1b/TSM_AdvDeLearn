@@ -15,6 +15,7 @@ seaborn = "*"
 scikit-image = "*"
 torchtext = "*"
 datasets = "*"
+gymnasium = "*"
 
 [dev-packages]
 
