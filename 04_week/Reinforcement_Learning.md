@@ -36,7 +36,19 @@ There are two types of policies:
 - **Stochastic policy**: Chooses actions according to a probability distribution over actions given a state.
   The goal of RL is to find the optimal policy $\pi^* $, which maximizes the cumulative reward.
 
+### Off-policy vs. On-policy
+#### On-policy
+On-policy methods solve the exploration vs exploitation dilemma by including randomness in the form of a policy. Thus, it selects non-greedy actions with some probability.
+#### Off-policy
+Uses two policies: the target policy that is being learned and the behavior policy that is used to select actions. The behavior policy can be deterministic or stochastic, and it can be unrelated to the target policy.
 
+### Exploration vs. Exploitation
+- **Exploration**: Trying new actions to discover their effects.
+- **Exploitation**: Choosing actions that are known to yield high rewards based on the current knowledge.
+
+### Model-based vs. Model-free
+- **Model-based**: Learns a model of the environment (transition probabilities and rewards) and uses it to plan ahead.
+- **Model-free**: Directly learns the value function or policy without a model of the environment.
 ---
 
 ### Markov Decision Process (MDP)
@@ -72,14 +84,15 @@ Monte Carlo methods estimate the value function $V(s)$ or action-value function 
 
 Policy iteration alternates between two main steps:
 
-- Policy Evaluation: Given a policy ππ, estimate the value function VπVπ that describes the expected return starting from each state and following ππ.
-- Policy Improvement: Use the value function VπVπ to improve the policy. The new policy π′π′ is determined by acting greedily with respect to the current value function, meaning that in each state, the agent chooses the action that maximizes the expected return.
+- Policy Evaluation: Given a policy $π$, estimate the value function $Vπ$ that describes the expected return starting from each state and following $π$.
+- Policy Improvement: Use the value function VπVπ to improve the policy. The new policy $π$ is determined by acting greedily with respect to the current value function, meaning that in each state, the agent chooses the action that maximizes the expected return.
 
 
 ### Temporal Difference Learning
 TD learning allows an agent to update value estimates not only based on the reward at the end of an episode (like in Monte Carlo methods) but after every step, using the reward observed and the estimate of the next state’s value.
 
 ### SARSA
+On-policy algorithm that uses $\epsilon$-greedy strategy
 SARSA (State-Action-Reward-State-Action) is used to learn an optimal policy for a Markov Decision Process (MDP) through direct interaction with the environment.
 
 SARSA works by updating the action-value function \( Q(s, a) \) using the following update rule:
@@ -88,6 +101,39 @@ $Q(s, a) \leftarrow Q(s, a) + \alpha \left[ r + \gamma Q(s', a') - Q(s, a) \righ
 
 ### Q-Learning
 Q-learning is an off-policy TD control algorithm that learns the optimal action-value function $Q^*(s, a)$ by directly approximating it.
+In the beginning you don't know the estimate of the Q-value, so you initialize it and then you take actions and observe the reward and the next state. You update the Q-value using the formula:
+$Q_{t+1} (s_t, a_t) \leftarrow Q_t(s_t, a_t) + \alpha \left[ R_{t+1} + \gamma \max_ {a'} Q_t(s_t, a) - Q_t(s_t, a_t) \right]$
+![q-leaning-function.png](q-leaning-function.png)
+(for that use the Bellman equation)
+
+You learn the Q-value for each state-action pair by taking actions and observing the rewards and next states. The agent uses an $\epsilon$-greedy strategy to balance exploration and exploitation.
+
+Deternmine between exploration and exploitation using $\epsilon$-greedy strategy
+
+### Deep Q-Learning
+
+
+### Policy Based Methods
+
+#### REINFORCE
+
+#### Baseline
+
+
+### Types of RL 
+
+| Type           | **Model-based**                          | **Value-based**                     | **Policy-based**                        | **Actor-Critic**                        |
+|----------------|------------------------------------------|-------------------------------------|-----------------------------------------|--------------------------------------------|
+| **Approach**   | Uses a model of the environment to simulate actions and outcomes. | Learns a value function to evaluate the goodness of actions or states. | Directly optimizes the policy to maximize expected reward. | Combines value-based and policy-based methods. |
+| **Key Method** | Planning (e.g., Value Iteration, Monte Carlo Tree Search). | Q-learning, SARSA, DQN (Deep Q-networks). | Policy Gradient methods (e.g., REINFORCE, PPO, TRPO). | Combines value function and policy optimization (e.g., A2C, A3C). |
+| **Exploration**| Can simulate actions to explore, reducing real-world interaction. | Typically uses exploration policies like \(\epsilon\)-greedy. | Exploration can be stochastic through policy. | Balances exploration and exploitation through actor and critic. |
+| **Strengths**  | Efficient for environments where models are available or easy to learn. | Simple to implement, works well in many environments. | Works well in environments with continuous actions or policies. | Combines value-based and policy-based methods. |
+| **Weaknesses** | Requires an accurate model; may be computationally expensive. | May struggle with continuous or large action spaces. | May converge to local optima; high variance in learning. | May require careful tuning of hyperparameters. |
+| **Examples**    | Model Predictive Control, Dyna-Q.         | Q-learning, DQN, SARSA.            | REINFORCE, PPO, TRPO.                   | A2C, A3C.                                |
+### Actor-Critic Methods
+
+
+![actor-critic-method.png](actor-critic-method.png)
 
 
 
