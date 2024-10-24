@@ -16,6 +16,10 @@ scikit-image = "*"
 torchtext = "*"
 datasets = "*"
 gymnasium = "*"
+jdc = "*"
+ipywidgets = "*"
+pyglet = "*"
+pygame = "*"
 
 [dev-packages]
 
