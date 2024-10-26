@@ -3,8 +3,9 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+
 [packages]
-torch = "2.3.0"
+torch = "*"
 numpy = "*"
 torchvision = "*"
 torchinfo = "*"
@@ -20,6 +21,17 @@ jdc = "*"
 ipywidgets = "*"
 pyglet = "*"
 pygame = "*"
+
+# for cuda
+# ---------------------------
+#[[source]]
+#name = "cuda-pytorch"
+#url = "https://download.pytorch.org/whl/cu118"
+#verify_ssl = false
+#torch = { index = "cuda-pytorch", version = "*" }
+#torchvision  = { index = "cuda-pytorch", version = "*" }
+#numpy = { index = "cuda-pytorch", version = "*" }
+# ---------------------------
 
 [dev-packages]
 
