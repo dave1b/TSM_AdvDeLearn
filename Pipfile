@@ -3,7 +3,6 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [packages]
 torch = "*"
 numpy = "*"
@@ -21,7 +20,6 @@ jdc = "*"
 ipywidgets = "*"
 pyglet = "*"
 pygame = "*"
-
 # for cuda
 # ---------------------------
 #[[source]]
@@ -32,6 +30,8 @@ pygame = "*"
 #torchvision  = { index = "cuda-pytorch", version = "*" }
 #numpy = { index = "cuda-pytorch", version = "*" }
 # ---------------------------
+torch-geometric = "*"
+scikit-learn = "*"
 
 [dev-packages]
 
