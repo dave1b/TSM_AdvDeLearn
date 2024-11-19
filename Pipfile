@@ -32,6 +32,10 @@ pygame = "*"
 # ---------------------------
 torch-geometric = "*"
 scikit-learn = "*"
+tensorflow = "*"
+opencv-python = "*"
+captum = "*"
+timm = "*"
 
 [dev-packages]
 
